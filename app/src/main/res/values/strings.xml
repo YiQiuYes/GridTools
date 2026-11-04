@@ -74,6 +74,9 @@
     <string name="switch_record_composer_add">加入</string>
     <string name="switch_record_composer_done">完成</string>
     <string name="switch_record_pick_time">选择时间</string>
+    <string name="switch_record_pick_person">选择已填写的人员</string>
+    <string name="switch_record_person_add">新增姓名</string>
+    <string name="switch_record_person_name">姓名</string>
     <string name="action_confirm">确定</string>
     <string name="action_cancel">取消</string>
 

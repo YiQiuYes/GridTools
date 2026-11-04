@@ -30,7 +30,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -38,6 +40,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +49,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -58,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -186,11 +191,13 @@ fun SwitchRecordScreen(
                         OperationEntryCard(
                             sequence = index + 1,
                             entry = entry,
+                            people = state.people,
                             onFieldChange = { field, value ->
                                 viewModel.onEvent(SwitchRecordUiEvent.FieldChanged(entry.id, field, value))
                             },
                             onRemove = { viewModel.onEvent(SwitchRecordUiEvent.EntryRemoved(entry.id)) },
                             onComposeTask = { composingEntryId = entry.id },
+                            onPersonStored = { viewModel.onEvent(SwitchRecordUiEvent.PersonStored(it)) },
                             modifier = Modifier.animateItem(),
                         )
                     }
@@ -280,6 +287,7 @@ private fun RecordHeaderCard(
             value = recordTime,
             onValueChange = onRecordTimeChange,
             containerColor = scheme.surface.copy(alpha = 0.72f),
+            mode = DateTimeMode.DATE,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -292,9 +300,12 @@ private fun RecordHeaderCard(
 }
 
 /**
- * 操作事由编号 — picked from [ReasonNoOptions] instead of free text, so the
- * printed form always carries one of the standard codes. Rendered as a
- * read-only field; a transparent overlay forwards taps to the dropdown.
+ * 操作事由编号 — picked from [ReasonNoOptions] instead of free text.
+ *
+ * Rendered as a plain selectable row (same style as [DateTimeField]) rather
+ * than a read-only OutlinedTextField: the text field's floating label paints
+ * an opaque mask over the tinted container and its long-press selection
+ * handles misalign, so we sidestep both by not using it.
  */
 @Composable
 private fun ReasonNoField(
@@ -306,42 +317,37 @@ private fun ReasonNoField(
     val scheme = MaterialTheme.colorScheme
 
     Box(modifier) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.switch_record_reason_no)) },
-            placeholder = {
-                Text(
-                    text = stringResource(R.string.switch_record_reason_no_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            },
-            shape = MaterialTheme.shapes.large,
-            maxLines = 2,
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Filled.ArrowDropDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = scheme.surface.copy(alpha = 0.72f),
-                unfocusedContainerColor = scheme.surface.copy(alpha = 0.72f),
-                focusedBorderColor = scheme.primary,
-                unfocusedBorderColor = scheme.outlineVariant,
-            ),
-        )
-        // The read-only field swallows taps itself, so an invisible layer on
-        // top forwards the click to open the option menu instead.
-        Box(
+        Row(
             modifier = Modifier
-                .matchParentSize()
+                .fillMaxWidth()
                 .clip(MaterialTheme.shapes.large)
-                .clickable { expanded = true },
-        )
+                .background(scheme.surface.copy(alpha = 0.72f))
+                .clickable { expanded = true }
+                .padding(horizontal = 14.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = scheme.primary,
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.switch_record_reason_no),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant,
+                )
+                Text(
+                    text = value.ifBlank { stringResource(R.string.switch_record_reason_no_hint) },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (value.isBlank()) scheme.onSurfaceVariant else scheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
@@ -368,9 +374,11 @@ private fun ReasonNoField(
 private fun OperationEntryCard(
     sequence: Int,
     entry: OperationEntry,
+    people: List<String>,
     onFieldChange: (EntryField, String) -> Unit,
     onRemove: () -> Unit,
     onComposeTask: () -> Unit,
+    onPersonStored: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val seed = visualIndexOf("switch-record-$sequence")
@@ -409,6 +417,7 @@ private fun OperationEntryCard(
                     onValueChange = { onFieldChange(EntryField.COMPLETED_AT, it) },
                     containerColor = MaterialTheme.colorScheme.surface,
                     compact = true,
+                    mode = DateTimeMode.TIME,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onRemove) {
@@ -426,6 +435,8 @@ private fun OperationEntryCard(
                         label = stringResource(R.string.switch_record_issuer),
                         value = entry.issuer,
                         onValueChange = { onFieldChange(EntryField.ISSUER, it) },
+                        people = people,
+                        onPersonStored = onPersonStored,
                         modifier = fieldModifier,
                     )
                 },
@@ -434,6 +445,8 @@ private fun OperationEntryCard(
                         label = stringResource(R.string.switch_record_receiver),
                         value = entry.receiver,
                         onValueChange = { onFieldChange(EntryField.RECEIVER, it) },
+                        people = people,
+                        onPersonStored = onPersonStored,
                         modifier = fieldModifier,
                     )
                 },
@@ -450,6 +463,8 @@ private fun OperationEntryCard(
                         label = stringResource(R.string.switch_record_operator),
                         value = entry.operator,
                         onValueChange = { onFieldChange(EntryField.OPERATOR, it) },
+                        people = people,
+                        onPersonStored = onPersonStored,
                         modifier = fieldModifier,
                     )
                 },
@@ -458,6 +473,8 @@ private fun OperationEntryCard(
                         label = stringResource(R.string.switch_record_supervisor),
                         value = entry.supervisor,
                         onValueChange = { onFieldChange(EntryField.SUPERVISOR, it) },
+                        people = people,
+                        onPersonStored = onPersonStored,
                         modifier = fieldModifier,
                     )
                 },
@@ -498,6 +515,14 @@ private fun TwoFieldRow(
     }
 }
 
+/**
+ * Labelled text field with optional person suggestions.
+ *
+ * When [people] is non-empty a dropdown arrow appears: tapping it lists the
+ * names already typed on this page plus a 新增姓名 entry (small dialog). Names
+ * typed by hand are also stored on focus loss, so they become selectable in
+ * the other person fields afterwards.
+ */
 @Composable
 private fun LabelledField(
     label: String,
@@ -505,28 +530,124 @@ private fun LabelledField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     maxLines: Int = 3,
+    people: List<String> = emptyList(),
+    onPersonStored: (String) -> Unit = {},
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier,
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+    var menuOpen by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    Box(modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { state ->
+                    if (!state.isFocused && !state.hasFocus && value.isNotBlank()) {
+                        onPersonStored(value.trim())
+                    }
+                },
+            label = {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            trailingIcon = {
+                if (people.isNotEmpty()) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowDropDown,
+                        contentDescription = stringResource(R.string.switch_record_pick_person),
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clickable { menuOpen = true },
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            shape = MaterialTheme.shapes.large,
+            maxLines = maxLines,
+            textStyle = MaterialTheme.typography.bodyLarge,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            ),
+        )
+        DropdownMenu(
+            expanded = menuOpen,
+            onDismissRequest = { menuOpen = false },
+        ) {
+            people.forEach { name ->
+                DropdownMenuItem(
+                    text = { Text(name) },
+                    onClick = {
+                        onValueChange(name)
+                        menuOpen = false
+                    },
+                )
+            }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.switch_record_person_add)) },
+                leadingIcon = {
+                    Icon(Icons.Filled.PersonAddAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                },
+                onClick = {
+                    menuOpen = false
+                    showAddDialog = true
+                },
+            )
+        }
+    }
+
+    if (showAddDialog) {
+        AddPersonDialog(
+            onConfirm = { name ->
+                onValueChange(name)
+                onPersonStored(name)
+                showAddDialog = false
+            },
+            onDismiss = { showAddDialog = false },
+        )
+    }
+}
+
+/** Small dialog to type a brand-new name, then fill the field and store it. */
+@Composable
+private fun AddPersonDialog(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.switch_record_person_add)) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text(stringResource(R.string.switch_record_person_name)) },
+                singleLine = true,
+                shape = MaterialTheme.shapes.large,
             )
         },
-        shape = MaterialTheme.shapes.large,
-        maxLines = maxLines,
-        textStyle = MaterialTheme.typography.bodyLarge,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-        ),
+        confirmButton = {
+            TextButton(
+                enabled = text.isNotBlank(),
+                onClick = { onConfirm(text.trim()) },
+            ) {
+                Text(stringResource(R.string.action_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
     )
 }
 

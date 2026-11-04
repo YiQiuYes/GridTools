@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -40,15 +41,19 @@ import androidx.compose.ui.unit.dp
 import com.yiqiu.toolkit.R
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+/** What a [DateTimeField] edits: a plain date or a time of day. */
+enum class DateTimeMode { DATE, TIME }
+
 /**
- * A tap-to-edit date + time field.
+ * A tap-to-edit date or time field.
  *
- * Tapping opens the Material date picker, then the time picker, and writes the
- * combined `yyyy-MM-dd HH:mm` value back. The field itself never scrolls
- * horizontally; long values wrap into a second line instead.
+ * [DateTimeMode.DATE] opens the Material date picker and writes `yyyy-MM-dd`;
+ * [DateTimeMode.TIME] opens the time picker and writes `HH:mm`. The field
+ * itself never scrolls horizontally; long values wrap into a second line.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,23 +64,26 @@ fun DateTimeField(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     compact: Boolean = false,
+    mode: DateTimeMode = DateTimeMode.DATE,
 ) {
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var pickedDateMillis by remember { mutableStateOf<Long?>(null) }
-
-    val parsed = remember(value) { parseDateTime(value) }
+    var showPicker by remember { mutableStateOf(false) }
+    val pattern = if (mode == DateTimeMode.DATE) DATE_PATTERN else TIME_PATTERN
+    val parsed = remember(value, mode) { parseValue(value, pattern) }
 
     Row(
         modifier = modifier
             .clip(MaterialTheme.shapes.large)
             .background(containerColor)
-            .clickable { showDatePicker = true }
+            .clickable { showPicker = true }
             .padding(horizontal = 14.dp, vertical = if (compact) 10.dp else 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Filled.EditCalendar,
+            imageVector = if (mode == DateTimeMode.DATE) {
+                Icons.Filled.EditCalendar
+            } else {
+                Icons.Filled.Schedule
+            },
             contentDescription = null,
             modifier = Modifier.size(if (compact) 16.dp else 18.dp),
             tint = MaterialTheme.colorScheme.primary,
@@ -105,71 +113,83 @@ fun DateTimeField(
         }
     }
 
-    if (showDatePicker) {
-        val dateState = rememberDatePickerState(
-            initialSelectedDateMillis = parsed?.let(::toUtcDateMillis)
-                ?: toUtcDateMillis(Calendar.getInstance()),
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        pickedDateMillis = dateState.selectedDateMillis
-                            ?: toUtcDateMillis(Calendar.getInstance())
-                        showDatePicker = false
-                        showTimePicker = true
-                    },
-                ) {
-                    Text(stringResource(R.string.action_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        ) {
-            DatePicker(state = dateState)
-        }
-    }
-
-    if (showTimePicker) {
-        val timeState = rememberTimePickerState(
-            initialHour = parsed?.get(Calendar.HOUR_OF_DAY) ?: Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
-            initialMinute = parsed?.get(Calendar.MINUTE) ?: Calendar.getInstance().get(Calendar.MINUTE),
-            is24Hour = true,
-        )
-        BasicAlertDialog(onDismissRequest = { showTimePicker = false }) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 6.dp,
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.switch_record_pick_time),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                    TimePicker(state = timeState)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+    when (mode) {
+        DateTimeMode.DATE -> if (showPicker) {
+            val dateState = rememberDatePickerState(
+                initialSelectedDateMillis = parsed?.let(::toUtcDateMillis)
+                    ?: toUtcDateMillis(Calendar.getInstance()),
+            )
+            DatePickerDialog(
+                onDismissRequest = { showPicker = false },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            onValueChange(
+                                SimpleDateFormat(DATE_PATTERN, Locale.getDefault())
+                                    .format(Date(dateState.selectedDateMillis ?: System.currentTimeMillis())),
+                            )
+                            showPicker = false
+                        },
                     ) {
-                        TextButton(onClick = { showTimePicker = false }) {
-                            Text(stringResource(R.string.action_cancel))
-                        }
-                        TextButton(
-                            onClick = {
-                                onValueChange(formatDateTime(pickedDateMillis, timeState.hour, timeState.minute))
-                                showTimePicker = false
-                            },
+                        Text(stringResource(R.string.action_confirm))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPicker = false }) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            ) {
+                DatePicker(state = dateState)
+            }
+        }
+
+        DateTimeMode.TIME -> if (showPicker) {
+            val timeState = rememberTimePickerState(
+                initialHour = parsed?.get(Calendar.HOUR_OF_DAY)
+                    ?: Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+                initialMinute = parsed?.get(Calendar.MINUTE)
+                    ?: Calendar.getInstance().get(Calendar.MINUTE),
+                is24Hour = true,
+            )
+            BasicAlertDialog(onDismissRequest = { showPicker = false }) {
+                Surface(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    tonalElevation = 6.dp,
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.switch_record_pick_time),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                        TimePicker(state = timeState)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
                         ) {
-                            Text(stringResource(R.string.action_confirm))
+                            TextButton(onClick = { showPicker = false }) {
+                                Text(stringResource(R.string.action_cancel))
+                            }
+                            TextButton(
+                                onClick = {
+                                    onValueChange(
+                                        String.format(
+                                            Locale.getDefault(),
+                                            "%02d:%02d",
+                                            timeState.hour,
+                                            timeState.minute,
+                                        ),
+                                    )
+                                    showPicker = false
+                                },
+                            ) {
+                                Text(stringResource(R.string.action_confirm))
+                            }
                         }
                     }
                 }
@@ -178,11 +198,11 @@ fun DateTimeField(
     }
 }
 
-/** Parses a `yyyy-MM-dd HH:mm` value back into a calendar, or null when blank. */
-private fun parseDateTime(value: String): Calendar? {
+/** Parses a field value back into a calendar, or null when blank/unparsable. */
+private fun parseValue(value: String, pattern: String): Calendar? {
     if (value.isBlank()) return null
     return runCatching {
-        SimpleDateFormat(DATE_TIME_PATTERN, Locale.getDefault()).parse(value)?.let { date ->
+        SimpleDateFormat(pattern, Locale.getDefault()).parse(value)?.let { date ->
             Calendar.getInstance().apply { time = date }
         }
     }.getOrNull()
@@ -199,20 +219,9 @@ private fun toUtcDateMillis(calendar: Calendar): Long =
         )
     }.timeInMillis
 
-private fun formatDateTime(dateMillis: Long?, hour: Int, minute: Int): String {
-    val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-        timeInMillis = dateMillis ?: System.currentTimeMillis()
-    }
-    val local = Calendar.getInstance().apply {
-        set(
-            utc.get(Calendar.YEAR),
-            utc.get(Calendar.MONTH),
-            utc.get(Calendar.DAY_OF_MONTH),
-            hour,
-            minute,
-            0,
-        )
-        set(Calendar.MILLISECOND, 0)
-    }
-    return SimpleDateFormat(DATE_TIME_PATTERN, Locale.getDefault()).format(local.time)
-}
+/** `yyyy-MM-dd` in the device locale, used for the record header date. */
+internal fun currentDate(): String =
+    SimpleDateFormat(DATE_PATTERN, Locale.getDefault()).format(Date())
+
+internal const val DATE_PATTERN = "yyyy-MM-dd"
+internal const val TIME_PATTERN = "HH:mm"

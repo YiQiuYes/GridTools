@@ -40,6 +40,8 @@ data class SwitchRecordUiState(
     val entries: List<OperationEntry> = emptyList(),
     /** 自定义词组临时分组：页面生命周期内暂存，供各行拼接复用。 */
     val customPhrases: List<String> = emptyList(),
+    /** 已填写过的人名（发令人/受令人/操作人/监护人），页面生命周期内暂存。 */
+    val people: List<String> = emptyList(),
 )
 
 sealed interface SwitchRecordUiEvent {
@@ -55,6 +57,8 @@ sealed interface SwitchRecordUiEvent {
     data class TaskPhraseAdded(val entryId: Long, val text: String) : SwitchRecordUiEvent
     /** 加入自定义词组：追加进临时分组，供本页后续拼接复用。 */
     data class CustomPhraseStored(val text: String) : SwitchRecordUiEvent
+    /** 暂存一个已填写的人名，供四个人员字段的弹窗选择。 */
+    data class PersonStored(val name: String) : SwitchRecordUiEvent
     data class TaskTokenRemoved(val entryId: Long, val tokenId: Long) : SwitchRecordUiEvent
     data class TaskCleared(val entryId: Long) : SwitchRecordUiEvent
 }

@@ -4,9 +4,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * State holder for the switching-operation record.
@@ -19,7 +16,7 @@ import java.util.Locale
  */
 class SwitchRecordViewModel : ViewModel() {
 
-    var uiState by mutableStateOf(SwitchRecordUiState(recordTime = currentDateTime()))
+    var uiState by mutableStateOf(SwitchRecordUiState(recordTime = currentDate()))
         private set
 
     private var nextEntryId = 1L
@@ -64,6 +61,13 @@ class SwitchRecordViewModel : ViewModel() {
                 }
             }
 
+            is SwitchRecordUiEvent.PersonStored -> {
+                val name = event.name.trim()
+                if (name.isNotEmpty() && name !in uiState.people) {
+                    uiState = uiState.copy(people = uiState.people + name)
+                }
+            }
+
             is SwitchRecordUiEvent.TaskTokenRemoved -> updateEntry(event.entryId) { entry ->
                 entry.copy(task = entry.task.filterNot { it.id == event.tokenId })
             }
@@ -94,9 +98,5 @@ private fun OperationEntry.withField(field: EntryField, value: String): Operatio
         EntryField.SUPERVISOR -> copy(supervisor = value)
         EntryField.NOTE -> copy(note = value)
     }
-
-/** `yyyy-MM-dd HH:mm` in the device locale, used for every timestamp on screen. */
-internal fun currentDateTime(): String =
-    SimpleDateFormat(DATE_TIME_PATTERN, Locale.getDefault()).format(Date())
 
 internal const val DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm"
