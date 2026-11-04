@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
  * the UI can confirm with a snackbar.
  */
 class SwitchRecordViewModel(
-    phraseLibrary: PhraseLibraryRepository,
+    private val phraseLibrary: PhraseLibraryRepository,
     private val recordRepository: SwitchRecordRepository,
     recordId: String? = null,
 ) : ViewModel() {
@@ -130,18 +130,34 @@ class SwitchRecordViewModel(
     }
 
     private fun load(record: SavedSwitchRecord) {
-        uiState = SwitchRecordUiState(
-            recordTime = record.recordTime.ifBlank { currentDate() },
-            reasonNo = record.reasonNo,
-        )
-        record.entries.forEach { entry ->
-            val restored = entry.copy(
+        val entries = record.entries.map { entry ->
+            entry.copy(
                 id = nextEntryId++,
                 task = entry.task.map { TaskToken(id = nextTokenId++, text = it.text) },
             )
-            uiState = uiState.copy(entries = uiState.entries + restored)
         }
+        uiState = SwitchRecordUiState(
+            recordTime = record.recordTime.ifBlank { currentDate() },
+            reasonNo = record.reasonNo,
+            entries = entries,
+            // 任务里不属于任何固定词组分组的词条就是自定义词组，回填临时分组，
+            // 这样从历史记录进入编辑页时它们不会消失。
+            customPhrases = entries.customPhraseTexts(phraseLibrary.groups.value),
+        )
         if (uiState.entries.isEmpty()) addEntry()
+    }
+
+    /** 任务词条中不在任何固定分组里的文本，按出现顺序去重后作为临时分组。 */
+    private fun List<OperationEntry>.customPhraseTexts(
+        groups: List<PhraseGroup>,
+    ): List<String> {
+        val preset = groups.flatMap { it.phrases }.toHashSet()
+        return asSequence()
+            .flatMap { it.task.asSequence() }
+            .map { it.text.trim() }
+            .filter { it.isNotEmpty() && it !in preset }
+            .distinct()
+            .toList()
     }
 
     private fun addEntry() {

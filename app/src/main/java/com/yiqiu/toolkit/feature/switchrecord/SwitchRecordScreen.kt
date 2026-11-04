@@ -31,10 +31,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +44,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,6 +59,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -127,7 +131,7 @@ fun SwitchRecordScreen(
     val exportFailedMessage = stringResource(R.string.switch_record_export_failed)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var menuExpanded by remember { mutableStateOf(false) }
+    var fabMenuExpanded by remember { mutableStateOf(false) }
 
     /** Fill the bundled Word template with the current page content and share it. */
     fun exportDocx() {
@@ -212,38 +216,53 @@ fun SwitchRecordScreen(
                         )
                     }
                 },
-                actions = {
-                    IconButton(onClick = viewModel::save) {
-                        Icon(
-                            imageVector = Icons.Filled.Save,
-                            contentDescription = stringResource(R.string.action_save),
-                        )
-                    }
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert,
-                            contentDescription = stringResource(R.string.action_more),
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.switch_record_export)) },
-                            onClick = {
-                                menuExpanded = false
-                                exportDocx()
-                            },
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
                 scrollBehavior = scrollBehavior,
             )
+        },
+        floatingActionButton = {
+            // M3 Expressive FAB menu, bottom-right: 保存 + 另存为 Word 文档.
+            // Hidden while the keyboard is up, per the M3 FAB placement spec.
+            if (!imeVisible) {
+                FloatingActionButtonMenu(
+                    expanded = fabMenuExpanded,
+                    button = {
+                        ToggleFloatingActionButton(
+                            checked = fabMenuExpanded,
+                            onCheckedChange = { fabMenuExpanded = it },
+                        ) {
+                            Icon(
+                                imageVector = if (checkedProgress > 0.5f) {
+                                    Icons.Filled.Close
+                                } else {
+                                    Icons.Filled.Add
+                                },
+                                contentDescription = stringResource(R.string.action_more),
+                            )
+                        }
+                    },
+                ) {
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                            fabMenuExpanded = false
+                            viewModel.save()
+                        },
+                        text = { Text(stringResource(R.string.action_save)) },
+                        icon = { Icon(Icons.Filled.Save, contentDescription = null) },
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                            fabMenuExpanded = false
+                            exportDocx()
+                        },
+                        text = { Text(stringResource(R.string.switch_record_export)) },
+                        icon = { Icon(Icons.Outlined.Description, contentDescription = null) },
+                    )
+                }
+            }
         },
     ) { innerPadding ->
         Box(Modifier.fillMaxSize()) {
@@ -258,7 +277,9 @@ fun SwitchRecordScreen(
                     start = 16.dp,
                     end = 16.dp,
                     top = innerPadding.calculateTopPadding() + 12.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 24.dp,
+                    // Extra bottom clearance so the FAB menu does not cover the
+                    // last card (the FAB overlaps content by design in Scaffold).
+                    bottom = innerPadding.calculateBottomPadding() + 24.dp + 88.dp,
                 ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {

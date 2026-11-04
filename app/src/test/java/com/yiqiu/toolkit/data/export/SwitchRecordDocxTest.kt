@@ -1,5 +1,6 @@
 package com.yiqiu.toolkit.data.export
 
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFTableCell
 import org.junit.Assert.assertEquals
@@ -34,9 +35,9 @@ class SwitchRecordDocxTest {
         assertTrue("template asset must exist", template.exists())
         val out = File.createTempFile("record_filled_", ".docx")
         FileInputStream(template).use { input ->
-            XWPFDocument(input).use { doc ->
-                SwitchRecordDocx.fillDocument(doc, data)
-                FileOutputStream(out).use { doc.write(it) }
+            XWPFDocument(input).use { templateDoc ->
+                val filled = SwitchRecordDocx.fillDocument(templateDoc, data)
+                FileOutputStream(out).use { filled.write(it) }
             }
         }
         return out
@@ -81,6 +82,34 @@ class SwitchRecordDocxTest {
                 assertEquals("赵四", cellText(r1.getCell(6)))
                 assertEquals("第一项", cellText(r1.getCell(7)))
 
+                // Filled cells are vertically centered; centered horizontally
+                // except the 操作任务 column, which is left-aligned.
+                assertEquals(
+                    "data cell v-centered",
+                    XWPFTableCell.XWPFVertAlign.CENTER,
+                    r1.getCell(1).verticalAlignment,
+                )
+                assertEquals(
+                    "receiver v-centered",
+                    XWPFTableCell.XWPFVertAlign.CENTER,
+                    r1.getCell(2).verticalAlignment,
+                )
+                assertEquals(
+                    "issuer centered",
+                    ParagraphAlignment.CENTER,
+                    r1.getCell(1).paragraphs[0].alignment,
+                )
+                assertEquals(
+                    "task left-aligned",
+                    ParagraphAlignment.LEFT,
+                    r1.getCell(3).paragraphs[0].alignment,
+                )
+                assertEquals(
+                    "note centered",
+                    ParagraphAlignment.CENTER,
+                    r1.getCell(7).paragraphs[0].alignment,
+                )
+
                 // The remaining preset rows stay blank, not corrupted.
                 assertEquals("", cellText(table.getRow(4).getCell(1)).trim())
             }
@@ -88,20 +117,49 @@ class SwitchRecordDocxTest {
     }
 
     @Test
-    fun clonesRowsWhenEntriesExceedPresetRows() {
+    fun continuesOnNewTemplatePageWhenPresetRowsAreExhausted() {
         val many = List(10) { i ->
             ExportEntry("发令人$i", "受令人$i", "任务$i", "10:${"%02d".format(i)}", "操作$i", "监护$i", "备注$i")
         }
         val out = writeFilled(sample(many))
         FileInputStream(out).use { input ->
             XWPFDocument(input).use { doc ->
-                val table = doc.tables.first()
-                // 1 header + 10 data rows.
-                assertEquals(11, table.numberOfRows)
-                val last = table.getRow(10)
-                assertEquals("10", cellText(last.getCell(0)))
-                assertEquals("发令人9", cellText(last.getCell(1)))
-                assertEquals("任务9", cellText(last.getCell(3)))
+                // 10 entries > 8 preset rows: a second template page is appended.
+                assertEquals(2, doc.tables.size)
+                val page1 = doc.tables[0]
+                val page2 = doc.tables[1]
+                assertEquals(9, page1.numberOfRows)
+                assertEquals(9, page2.numberOfRows)
+
+                // Page 1 carries entries 1-8.
+                assertEquals("发令人0", cellText(page1.getRow(1).getCell(1)))
+                assertEquals("发令人7", cellText(page1.getRow(8).getCell(1)))
+
+                // Page 2 is a fresh preset form carrying entries 9-10.
+                assertEquals("发令人8", cellText(page2.getRow(1).getCell(1)))
+                assertEquals("发令人9", cellText(page2.getRow(2).getCell(1)))
+                assertEquals("", cellText(page2.getRow(3).getCell(1)).trim())
+
+                // Even the spare rows on page 2 are vertically centered — the
+                // template copy must not keep its original top alignment.
+                assertEquals(
+                    "page2 spare row v-centered",
+                    XWPFTableCell.XWPFVertAlign.CENTER,
+                    page2.getRow(3).getCell(1).verticalAlignment,
+                )
+                // Its header row matches the original table header.
+                assertEquals(
+                    cellText(page1.getRow(0).getCell(0)),
+                    cellText(page2.getRow(0).getCell(0)),
+                )
+
+                // The template body (title + notes) is present on both pages.
+                val titles = doc.paragraphs.count { (it.text ?: "").contains("柳州供电局 现场电气操作记录票") }
+                assertEquals("title duplicated on new page", 2, titles)
+
+                // A page break separates the two template copies.
+                val hasPageBreak = doc.paragraphs.any { it.ctp.xmlText().contains("type=\"page\"") }
+                assertTrue("page break inserted", hasPageBreak)
             }
         }
     }
