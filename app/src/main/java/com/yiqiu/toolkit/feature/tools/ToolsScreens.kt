@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -376,6 +377,7 @@ fun ToolDetailScreen(
     onLaunch: () -> Unit,
     modifier: Modifier = Modifier,
     onMaintain: (() -> Unit)? = null,
+    onHistory: (() -> Unit)? = null,
     viewModel: ToolDetailViewModel = viewModel(
         factory = ToolDetailViewModel.Factory(LocalAppContainer.current, toolId),
     ),
@@ -431,6 +433,7 @@ fun ToolDetailScreen(
                 onRelatedTool = onRelatedTool,
                 onLaunch = onLaunch,
                 onMaintain = onMaintain,
+                onHistory = onHistory,
                 contentPadding = innerPadding,
             )
         }
@@ -446,6 +449,7 @@ private fun ToolDetailContent(
     onRelatedTool: (String) -> Unit,
     onLaunch: () -> Unit,
     onMaintain: (() -> Unit)?,
+    onHistory: (() -> Unit)?,
     contentPadding: PaddingValues,
 ) {
     Column(
@@ -479,6 +483,15 @@ private fun ToolDetailContent(
                     Icon(
                         imageVector = Icons.Filled.Tune,
                         contentDescription = stringResource(R.string.tools_detail_maintain),
+                    )
+                }
+            }
+            // Persisted-history entry (e.g. saved switching records).
+            if (onHistory != null) {
+                FilledTonalIconButton(onClick = onHistory) {
+                    Icon(
+                        imageVector = Icons.Outlined.History,
+                        contentDescription = stringResource(R.string.tools_detail_history),
                     )
                 }
             }

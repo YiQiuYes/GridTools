@@ -32,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.PersonAddAlt
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -48,6 +49,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,6 +59,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +81,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yiqiu.toolkit.R
 import com.yiqiu.toolkit.core.di.LocalAppContainer
+import com.yiqiu.toolkit.data.model.EntryField
+import com.yiqiu.toolkit.data.model.OperationEntry
+import com.yiqiu.toolkit.data.model.TaskToken
 import com.yiqiu.toolkit.ui.theme.toolBadgeShape
 import com.yiqiu.toolkit.ui.theme.toolTone
 import com.yiqiu.toolkit.ui.theme.visualIndexOf
@@ -93,14 +101,25 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun SwitchRecordScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    recordId: String? = null,
     viewModel: SwitchRecordViewModel = viewModel(
-        factory = SwitchRecordViewModel.Factory(LocalAppContainer.current),
+        factory = SwitchRecordViewModel.Factory(LocalAppContainer.current, recordId),
     ),
 ) {
     val state = viewModel.uiState
     val phraseGroups by viewModel.phraseGroups.collectAsStateWithLifecycle()
     var composingEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val snackbarHostState = remember { SnackbarHostState() }
+    val savedMessage = stringResource(R.string.switch_record_saved)
+
+    // Confirm each successful save with a transient snackbar; keyed on the
+    // save timestamp so repeated saves re-trigger it.
+    LaunchedEffect(viewModel.lastSavedAt) {
+        if (viewModel.lastSavedAt != null) {
+            snackbarHostState.showSnackbar(savedMessage)
+        }
+    }
 
     // On predictive-back devices the back press that collapses the keyboard
     // can also reach the app's back dispatcher and pop this screen. While the
@@ -119,6 +138,7 @@ fun SwitchRecordScreen(
                 detectTapGestures(onTap = { focusManager.clearFocus() })
             },
         containerColor = MaterialTheme.colorScheme.surface,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -134,6 +154,14 @@ fun SwitchRecordScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.action_back),
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = viewModel::save) {
+                        Icon(
+                            imageVector = Icons.Filled.Save,
+                            contentDescription = stringResource(R.string.action_save),
                         )
                     }
                 },

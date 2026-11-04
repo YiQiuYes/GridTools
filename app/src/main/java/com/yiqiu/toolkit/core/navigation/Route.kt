@@ -36,11 +36,19 @@ data class ToolDetailRoute(val toolId: String) : Route
 
 /** Full-screen working surface of an implemented tool. */
 @Serializable
-data class ToolRuntimeRoute(val toolId: String) : Route
+data class ToolRuntimeRoute(
+    val toolId: String,
+    /** When set, the runtime loads and updates this persisted record. */
+    val recordId: String? = null,
+) : Route
 
 /** Maintenance screen for the switching-operation phrase library. */
 @Serializable
 data object PhraseMaintenanceRoute : Route
+
+/** Saved switching-operation records (历史记录). */
+@Serializable
+data object SwitchRecordHistoryRoute : Route
 
 @Serializable
 data object SettingsRoute : Route

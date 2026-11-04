@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -72,6 +73,9 @@ class PhraseLibraryViewModel(private val repository: PhraseLibraryRepository) : 
 
     fun addGroup(title: String) = repository.addGroup(title)
 
+    /** Delete the whole group together with its phrases. */
+    fun removeGroup(groupId: String) = repository.removeGroup(groupId)
+
     class Factory(private val container: AppContainer) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -91,6 +95,7 @@ fun PhraseLibraryScreen(
     val groups by viewModel.groups.collectAsStateWithLifecycle()
     var addingGroup by remember { mutableStateOf(false) }
     var addPhraseTarget by remember { mutableStateOf<PhraseGroup?>(null) }
+    var deletingGroup by remember { mutableStateOf<PhraseGroup?>(null) }
     val focusManager = LocalFocusManager.current
 
     // Tap any empty area to drop the keyboard, matching the record screen.
@@ -150,6 +155,7 @@ fun PhraseLibraryScreen(
                     group = group,
                     onRemovePhrase = { viewModel.removePhrase(group.id, it) },
                     onAddPhrase = { addPhraseTarget = group },
+                    onDeleteGroup = { deletingGroup = group },
                     modifier = Modifier.animateItem(),
                 )
             }
@@ -179,6 +185,31 @@ fun PhraseLibraryScreen(
             onDismiss = { addPhraseTarget = null },
         )
     }
+
+    deletingGroup?.let { target ->
+        AlertDialog(
+            onDismissRequest = { deletingGroup = null },
+            title = { Text(stringResource(R.string.phrase_lib_delete_group)) },
+            text = {
+                Text(stringResource(R.string.phrase_lib_delete_group_confirm, target.title))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.removeGroup(target.id)
+                        deletingGroup = null
+                    },
+                ) {
+                    Text(stringResource(R.string.action_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deletingGroup = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -187,6 +218,7 @@ private fun PhraseGroupCard(
     group: PhraseGroup,
     onRemovePhrase: (String) -> Unit,
     onAddPhrase: () -> Unit,
+    onDeleteGroup: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -212,6 +244,13 @@ private fun PhraseGroupCard(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                IconButton(onClick = onDeleteGroup) {
+                    Icon(
+                        imageVector = Icons.Outlined.DeleteOutline,
+                        contentDescription = stringResource(R.string.phrase_lib_delete_group),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             if (group.phrases.isEmpty()) {

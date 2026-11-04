@@ -48,6 +48,12 @@ class PhraseLibraryRepository(private val store: KeyValueStore) {
         persist()
     }
 
+    /** Delete the group with [groupId] together with all of its phrases. */
+    fun removeGroup(groupId: String) {
+        _groups.value = _groups.value.filterNot { it.id == groupId }
+        persist()
+    }
+
     private fun updateGroup(groupId: String, transform: (PhraseGroup) -> PhraseGroup) {
         _groups.value = _groups.value.map { if (it.id == groupId) transform(it) else it }
         persist()

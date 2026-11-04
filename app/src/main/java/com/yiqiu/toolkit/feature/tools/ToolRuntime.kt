@@ -32,10 +32,11 @@ import com.yiqiu.toolkit.feature.switchrecord.SwitchRecordScreen
 @Composable
 fun ToolRuntimeScreen(
     toolId: String,
+    recordId: String?,
     onBack: () -> Unit,
 ) {
     when (toolId) {
-        ToolIds.SwitchRecord -> SwitchRecordScreen(onBack = onBack)
+        ToolIds.SwitchRecord -> SwitchRecordScreen(onBack = onBack, recordId = recordId)
         else -> UnimplementedToolScreen(onBack = onBack)
     }
 }

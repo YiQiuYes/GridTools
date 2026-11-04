@@ -8,6 +8,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
+import com.yiqiu.toolkit.data.model.ToolIds
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
@@ -95,6 +96,16 @@ class Navigator(private val state: NavigationState) {
     /** Open the switching-operation phrase maintenance screen (Tools stack). */
     fun openPhraseMaintenance() {
         pushInTools(PhraseMaintenanceRoute)
+    }
+
+    /** Open the switching-operation history screen (Tools stack). */
+    fun openSwitchRecordHistory() {
+        pushInTools(SwitchRecordHistoryRoute)
+    }
+
+    /** Open a persisted switching-operation record for editing (Tools stack). */
+    fun openSwitchRecord(recordId: String) {
+        pushInTools(ToolRuntimeRoute(ToolIds.SwitchRecord, recordId))
     }
 
     /**

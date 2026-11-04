@@ -78,6 +78,15 @@
     <string name="switch_record_person_name">姓名</string>
     <string name="action_confirm">确定</string>
     <string name="action_cancel">取消</string>
+    <string name="action_save">保存</string>
+    <string name="switch_record_saved">已保存</string>
+    <string name="switch_record_history_title">历史记录</string>
+    <string name="switch_record_history_count">共 %1$d 条</string>
+    <string name="switch_record_history_meta">%1$d 项操作 · 保存于 %2$s</string>
+    <string name="switch_record_history_empty_title">还没有历史记录</string>
+    <string name="switch_record_history_empty_desc">在记录页点右上角「保存」后，可在这里查看和修改</string>
+    <string name="switch_record_delete_record">删除该记录</string>
+    <string name="switch_record_delete_record_confirm">删除后无法恢复，确定删除这条历史记录吗？</string>
 
     <!-- Phrase library maintenance -->
     <string name="phrase_lib_title">操作任务维护</string>
@@ -87,7 +96,10 @@
     <string name="phrase_lib_group_name">分组名称</string>
     <string name="phrase_lib_phrase_text">词组内容</string>
     <string name="phrase_lib_empty_group">暂无词组，点「添加词组」开始</string>
+    <string name="phrase_lib_delete_group">删除分组</string>
+    <string name="phrase_lib_delete_group_confirm">删除分组「%1$s」及其全部词组？</string>
     <string name="tools_detail_maintain">操作任务维护</string>
+    <string name="tools_detail_history">历史记录</string>
 
     <!-- Settings -->
     <string name="settings_title">设置</string>

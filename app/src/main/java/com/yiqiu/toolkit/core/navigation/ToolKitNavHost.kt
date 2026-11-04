@@ -18,6 +18,7 @@ import com.yiqiu.toolkit.data.model.ToolIds
 import com.yiqiu.toolkit.feature.home.HomeScreen
 import com.yiqiu.toolkit.feature.phraselibrary.PhraseLibraryScreen
 import com.yiqiu.toolkit.feature.settings.SettingsScreen
+import com.yiqiu.toolkit.feature.switchrecord.SwitchRecordHistoryScreen
 import com.yiqiu.toolkit.feature.tools.ToolDetailPlaceholder
 import com.yiqiu.toolkit.feature.tools.ToolDetailScreen
 import com.yiqiu.toolkit.feature.tools.ToolListScreen
@@ -80,12 +81,19 @@ fun ToolKitNavHost(
                 } else {
                     null
                 },
+                // And only the switching record exposes its saved history.
+                onHistory = if (key.toolId == ToolIds.SwitchRecord) {
+                    { navigator.openSwitchRecordHistory() }
+                } else {
+                    null
+                },
             )
         }
 
         entry<ToolRuntimeRoute> { key ->
             ToolRuntimeScreen(
                 toolId = key.toolId,
+                recordId = key.recordId,
                 onBack = { navigator.goBack() },
             )
         }
@@ -94,6 +102,15 @@ fun ToolKitNavHost(
             metadata = ListDetailSceneStrategy.detailPane(),
         ) {
             PhraseLibraryScreen(onBack = { navigator.goBack() })
+        }
+
+        entry<SwitchRecordHistoryRoute>(
+            metadata = ListDetailSceneStrategy.detailPane(),
+        ) {
+            SwitchRecordHistoryScreen(
+                onBack = { navigator.goBack() },
+                onOpenRecord = navigator::openSwitchRecord,
+            )
         }
 
         entry<SettingsRoute> {

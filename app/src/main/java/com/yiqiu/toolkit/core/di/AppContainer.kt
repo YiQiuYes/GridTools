@@ -5,6 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import com.yiqiu.toolkit.core.storage.KeyValueStore
 import com.yiqiu.toolkit.data.repository.InMemoryToolRepository
 import com.yiqiu.toolkit.data.repository.PhraseLibraryRepository
+import com.yiqiu.toolkit.data.repository.SwitchRecordRepository
 import com.yiqiu.toolkit.data.repository.ToolRepository
 import com.yiqiu.toolkit.data.storage.SharedPreferencesStore
 import com.yiqiu.toolkit.domain.usecase.GetToolUseCase
@@ -24,6 +25,7 @@ interface AppContainer {
     val toolRepository: ToolRepository
     val toolUseCases: ToolUseCases
     val phraseLibraryRepository: PhraseLibraryRepository
+    val switchRecordRepository: SwitchRecordRepository
 }
 
 class DefaultAppContainer(context: Context) : AppContainer {
@@ -43,6 +45,10 @@ class DefaultAppContainer(context: Context) : AppContainer {
 
     override val phraseLibraryRepository: PhraseLibraryRepository by lazy {
         PhraseLibraryRepository(keyValueStore)
+    }
+
+    override val switchRecordRepository: SwitchRecordRepository by lazy {
+        SwitchRecordRepository(keyValueStore)
     }
 }
 
