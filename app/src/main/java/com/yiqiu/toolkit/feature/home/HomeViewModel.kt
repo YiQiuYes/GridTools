@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val isLoading: Boolean = true,
     val tools: List<Tool> = emptyList(),
+    val totalCount: Int = 0,
     val favoriteCount: Int = 0,
     val query: String = "",
     val selectedCategory: ToolCategory? = null,
@@ -63,6 +64,7 @@ class HomeViewModel(private val useCases: ToolUseCases) : ViewModel() {
         HomeUiState(
             isLoading = false,
             tools = filtered,
+            totalCount = tools.size,
             favoriteCount = tools.count { it.isFavorite },
             query = query,
             selectedCategory = category,

@@ -84,9 +84,24 @@ class Navigator(private val state: NavigationState) {
 
     /** Open a tool from anywhere: jump to the Tools tab, then show its detail. */
     fun openTool(toolId: String) {
-        state.switchTo(TopLevelDestination.TOOLS)
-        state.backStacks.getValue(TopLevelDestination.TOOLS)
-            .add(ToolDetailRoute(toolId))
+        pushInTools(ToolDetailRoute(toolId))
+    }
+
+    /** Open a tool's working surface from anywhere: jump to the Tools tab. */
+    fun openToolRuntime(toolId: String) {
+        pushInTools(ToolRuntimeRoute(toolId))
+    }
+
+    /**
+     * Push onto the Tools stack without resetting it: [switchTo] would pop the
+     * stack back to its root when the tab is already selected, which would
+     * throw away the detail entry we are navigating from.
+     */
+    private fun pushInTools(route: Route) {
+        if (state.topLevelDestination != TopLevelDestination.TOOLS) {
+            state.switchTo(TopLevelDestination.TOOLS)
+        }
+        state.backStacks.getValue(TopLevelDestination.TOOLS).add(route)
     }
 
     /**

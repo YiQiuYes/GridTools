@@ -1,7 +1,6 @@
 package com.yiqiu.toolkit.feature.tools
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,16 +15,18 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Favorite
@@ -41,7 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
@@ -131,28 +131,86 @@ fun ToolListScreen(
             )
         },
     ) { innerPadding ->
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 160.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .consumeWindowInsets(innerPadding),
             contentPadding = PaddingValues(
-                top = innerPadding.calculateTopPadding(),
-                bottom = innerPadding.calculateBottomPadding() + 16.dp,
+                start = 16.dp,
+                end = 16.dp,
+                top = innerPadding.calculateTopPadding() + 4.dp,
+                bottom = innerPadding.calculateBottomPadding() + 24.dp,
             ),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             grouped.forEach { (category, categoryTools) ->
-                item(key = "header_${category.name}") {
+                item(key = "header_${category.name}", span = { GridItemSpan(maxLineSpan) }) {
                     CategoryHeader(label = category.label, count = categoryTools.size)
                 }
-                items(categoryTools, key = { it.id }) { tool ->
-                    ToolRow(
+                gridItems(
+                    items = categoryTools,
+                    key = { it.id },
+                    span = { GridItemSpan(1) },
+                ) { tool ->
+                    ToolCard(
                         tool = tool,
-                        modifier = Modifier.animateItem(),
                         onClick = { onToolClick(tool.id) },
+                        modifier = Modifier.animateItem(),
                     )
                 }
             }
+
+            if (tools.isEmpty()) {
+                item(key = "empty", span = { GridItemSpan(maxLineSpan) }) { ToolListEmptyState() }
+            }
         }
+    }
+}
+
+/** Shown when no tool has been registered yet. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ToolListEmptyState() {
+    val shape = heroDecorationShape()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 64.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .clip(shape)
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.tertiaryContainer,
+                        ),
+                    ),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.AutoAwesome,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        Text(
+            text = stringResource(R.string.tools_empty_title),
+            style = MaterialTheme.typography.titleLarge,
+        )
+        Text(
+            text = stringResource(R.string.tools_empty_desc),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -187,7 +245,7 @@ private fun CategoryHeader(label: String, count: Int) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ToolRow(
+private fun ToolCard(
     tool: Tool,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -196,29 +254,45 @@ private fun ToolRow(
     val tone = toolTone(index)
     val badgeShape = toolBadgeShape(index)
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Card(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        modifier = modifier,
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .size(52.dp)
-                .clip(badgeShape)
-                .background(tone.badgeBrush),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(
-                imageVector = iconFor(tool.id),
-                contentDescription = null,
-                modifier = Modifier.size(26.dp),
-                tint = tone.onContainer,
-            )
-        }
-        Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(badgeShape)
+                        .background(tone.badgeBrush),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = iconFor(tool.category),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = tone.onContainer,
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                if (tool.isFavorite) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = stringResource(R.string.action_favorite),
+                        modifier = Modifier.size(18.dp),
+                        tint = tone.accent,
+                    )
+                }
+            }
             Text(
                 text = tool.title,
                 style = MaterialTheme.typography.titleMedium,
@@ -227,26 +301,13 @@ private fun ToolRow(
             )
             Text(
                 text = tool.description,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
+                minLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (tool.isFavorite) {
-            Icon(
-                imageVector = Icons.Filled.Favorite,
-                contentDescription = stringResource(R.string.action_favorite),
-                modifier = Modifier.size(18.dp),
-                tint = tone.accent,
-            )
-            Spacer(Modifier.width(8.dp))
-        }
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
@@ -311,6 +372,7 @@ fun ToolDetailScreen(
     toolId: String,
     onBack: () -> Unit,
     onRelatedTool: (String) -> Unit,
+    onLaunch: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ToolDetailViewModel = viewModel(
         factory = ToolDetailViewModel.Factory(LocalAppContainer.current, toolId),
@@ -365,6 +427,7 @@ fun ToolDetailScreen(
                 related = related,
                 onToggleFavorite = viewModel::toggleFavorite,
                 onRelatedTool = onRelatedTool,
+                onLaunch = onLaunch,
                 contentPadding = innerPadding,
             )
         }
@@ -378,6 +441,7 @@ private fun ToolDetailContent(
     related: List<Tool>,
     onToggleFavorite: () -> Unit,
     onRelatedTool: (String) -> Unit,
+    onLaunch: () -> Unit,
     contentPadding: PaddingValues,
 ) {
     Column(
@@ -390,30 +454,32 @@ private fun ToolDetailContent(
     ) {
         DetailHero(tool = tool)
 
-        SplitButtonLayout(
-            leadingButton = {
-                Button(onClick = { /* placeholder for launching the tool */ }) {
-                    Icon(Icons.Filled.Bolt, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.tools_detail_open))
-                }
-            },
-            trailingButton = {
-                FilledTonalIconButton(onClick = onToggleFavorite) {
-                    Icon(
-                        imageVector = if (tool.isFavorite) {
-                            Icons.Filled.Favorite
-                        } else {
-                            Icons.Filled.FavoriteBorder
-                        },
-                        contentDescription = stringResource(
-                            if (tool.isFavorite) R.string.action_unfavorite else R.string.action_favorite,
-                        ),
-                    )
-                }
-            },
+        Row(
             modifier = Modifier.fillMaxWidth(),
-        )
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(
+                onClick = onLaunch,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.Filled.Bolt, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.tools_detail_open))
+            }
+            FilledTonalIconButton(onClick = onToggleFavorite) {
+                Icon(
+                    imageVector = if (tool.isFavorite) {
+                        Icons.Filled.Favorite
+                    } else {
+                        Icons.Filled.FavoriteBorder
+                    },
+                    contentDescription = stringResource(
+                        if (tool.isFavorite) R.string.action_unfavorite else R.string.action_favorite,
+                    ),
+                )
+            }
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             InfoCard(
@@ -486,7 +552,7 @@ private fun DetailHero(tool: Tool) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = iconFor(tool.id),
+                    imageVector = iconFor(tool.category),
                     contentDescription = null,
                     modifier = Modifier.size(44.dp),
                     tint = tone.onContainer,
@@ -577,7 +643,7 @@ private fun RelatedToolChip(tool: Tool, onClick: () -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = iconFor(tool.id),
+                    imageVector = iconFor(tool.category),
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
                     tint = tone.onContainer,

@@ -19,6 +19,7 @@ import com.yiqiu.toolkit.feature.settings.SettingsScreen
 import com.yiqiu.toolkit.feature.tools.ToolDetailPlaceholder
 import com.yiqiu.toolkit.feature.tools.ToolDetailScreen
 import com.yiqiu.toolkit.feature.tools.ToolListScreen
+import com.yiqiu.toolkit.feature.tools.ToolRuntimeScreen
 
 /**
  * Wires the app's destinations into Navigation 3.
@@ -69,6 +70,14 @@ fun ToolKitNavHost(
                 toolId = key.toolId,
                 onBack = { navigator.goBack() },
                 onRelatedTool = navigator::openTool,
+                onLaunch = { navigator.openToolRuntime(key.toolId) },
+            )
+        }
+
+        entry<ToolRuntimeRoute> { key ->
+            ToolRuntimeScreen(
+                toolId = key.toolId,
+                onBack = { navigator.goBack() },
             )
         }
 

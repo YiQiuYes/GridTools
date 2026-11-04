@@ -2,6 +2,7 @@
 .gradle
 .agents
 .idea
+.workbuddy
 /local.properties
 /.idea/caches
 /.idea/libraries

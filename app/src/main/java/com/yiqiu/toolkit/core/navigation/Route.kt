@@ -34,6 +34,10 @@ data object ToolsRoute : Route
 @Serializable
 data class ToolDetailRoute(val toolId: String) : Route
 
+/** Full-screen working surface of an implemented tool. */
+@Serializable
+data class ToolRuntimeRoute(val toolId: String) : Route
+
 @Serializable
 data object SettingsRoute : Route
 

@@ -1,0 +1,95 @@
+package com.yiqiu.toolkit.feature.switchrecord
+
+/** One phrase chip inside 操作任务 — tapped to remove it. */
+data class TaskToken(
+    val id: Long,
+    val text: String,
+)
+
+/**
+ * A single row of the switching-operation record.
+ *
+ * The eight sections of the paper form map onto the fields below; 序号 is not
+ * stored because it is derived from the row position, so it renumbers itself
+ * whenever a row is removed.
+ */
+data class OperationEntry(
+    val id: Long,
+    val issuer: String = "",
+    val receiver: String = "",
+    val task: List<TaskToken> = emptyList(),
+    val completedAt: String = "",
+    val operator: String = "",
+    val supervisor: String = "",
+    val note: String = "",
+)
+
+/** The free-text fields of an entry, addressed by [SwitchRecordUiEvent.FieldChanged]. */
+enum class EntryField {
+    ISSUER,
+    RECEIVER,
+    COMPLETED_AT,
+    OPERATOR,
+    SUPERVISOR,
+    NOTE,
+}
+
+data class SwitchRecordUiState(
+    val recordTime: String = "",
+    val reasonNo: String = "",
+    val entries: List<OperationEntry> = emptyList(),
+    /** 自定义词组临时分组：页面生命周期内暂存，供各行拼接复用。 */
+    val customPhrases: List<String> = emptyList(),
+)
+
+sealed interface SwitchRecordUiEvent {
+    data class RecordTimeChanged(val value: String) : SwitchRecordUiEvent
+    data class ReasonNoChanged(val value: String) : SwitchRecordUiEvent
+    data class FieldChanged(
+        val entryId: Long,
+        val field: EntryField,
+        val value: String,
+    ) : SwitchRecordUiEvent
+    data object EntryAdded : SwitchRecordUiEvent
+    data class EntryRemoved(val entryId: Long) : SwitchRecordUiEvent
+    data class TaskPhraseAdded(val entryId: Long, val text: String) : SwitchRecordUiEvent
+    /** 加入自定义词组：追加进临时分组，供本页后续拼接复用。 */
+    data class CustomPhraseStored(val text: String) : SwitchRecordUiEvent
+    data class TaskTokenRemoved(val entryId: Long, val tokenId: Long) : SwitchRecordUiEvent
+    data class TaskCleared(val entryId: Long) : SwitchRecordUiEvent
+}
+
+/**
+ * Phrase palette for the task composer.
+ *
+ * The groups follow the grammar of a switching order — an action, where it
+ * happens, on which device, in which state — so tapping a few chips already
+ * produces a sentence like "断开 1 号主变 101 开关".
+ */
+data class TaskPhraseGroup(
+    val title: String,
+    val phrases: List<String>,
+)
+
+val TaskPhraseGroups: List<TaskPhraseGroup> = listOf(
+    TaskPhraseGroup(
+        title = "操作动作",
+        phrases = listOf("断开", "合上", "拉开", "检查", "悬挂", "取下"),
+    ),
+    TaskPhraseGroup(
+        title = "其他",
+        phrases = listOf("在", "\"禁止合闸，线路有人工作\"标志牌"),
+    ),
+    TaskPhraseGroup(
+        title = "设备",
+        phrases = listOf("开关", "刀闸", "接地刀闸", "开关屏面上"),
+    ),
+)
+
+/** 操作事由编号的可选值。 */
+val ReasonNoOptions: List<String> = listOf(
+    "a 配网事故紧急处理",
+    "b 单一操作",
+    "c 低压配电网操作",
+    "d 二次设备开关、压板、连接片的操作",
+)

@@ -1,19 +1,11 @@
 package com.yiqiu.toolkit.ui.theme
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Numbers
-import androidx.compose.material.icons.filled.Paid
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Password
-import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.TextFormat
-import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
@@ -25,39 +17,37 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.graphics.shapes.RoundedPolygon
+import com.yiqiu.toolkit.data.model.ToolCategory
 
 /**
  * Shared visual identity for the tool catalogue.
  *
  * Material 3 Expressive is built on playful, soft "polymorphic" shapes and a
- * rich tonal palette. Each tool gets its own icon, morphing badge shape and
- * accent tone, so the grid reads as a lively collection instead of a wall of
+ * rich tonal palette. Each tool gets its own morphing badge shape and accent
+ * tone, so the grid reads as a lively collection instead of a wall of
  * identical grey cards.
  */
 
-/** Stable display order — also used as the seed for a tool's shape/tone. */
-private val ToolVisualOrder = listOf(
-    "qr", "unit", "calc", "color", "countdown", "password",
-    "text", "base", "tip", "date", "case", "hash",
-)
+/** Number of distinct badge/tone variants a tool can be seeded with. */
+private const val VisualVariants = 12
 
-fun visualIndexOf(toolId: String): Int =
-    ToolVisualOrder.indexOf(toolId).let { if (it >= 0) it else 0 }
+/**
+ * Stable visual seed for a tool, derived from its id so that newly registered
+ * tools pick up a shape and tone without editing this file.
+ */
+fun visualIndexOf(toolId: String): Int {
+    var hash = 0
+    for (char in toolId) hash = hash * 31 + char.code
+    return ((hash % VisualVariants) + VisualVariants) % VisualVariants
+}
 
-fun iconFor(toolId: String): ImageVector = when (toolId) {
-    "qr" -> Icons.Filled.QrCode
-    "unit" -> Icons.Filled.SwapHoriz
-    "calc" -> Icons.Filled.Calculate
-    "color" -> Icons.Filled.Palette
-    "countdown" -> Icons.Filled.Timer
-    "password" -> Icons.Filled.Password
-    "text" -> Icons.Filled.TextFields
-    "base" -> Icons.Filled.Numbers
-    "tip" -> Icons.Filled.Paid
-    "date" -> Icons.Filled.Event
-    "case" -> Icons.Filled.TextFormat
-    "hash" -> Icons.Filled.Fingerprint
-    else -> Icons.Filled.Build
+/** Icon shown for a tool, derived from the category it belongs to. */
+fun iconFor(category: ToolCategory): ImageVector = when (category) {
+    ToolCategory.RECORD -> Icons.AutoMirrored.Filled.Assignment
+    ToolCategory.PRODUCTIVITY -> Icons.Filled.Bolt
+    ToolCategory.CALCULATOR -> Icons.Filled.Calculate
+    ToolCategory.CONVERTER -> Icons.Filled.SwapHoriz
+    ToolCategory.UTILITY -> Icons.Filled.Widgets
 }
 
 /** A tonal colour triple derived from the active (possibly dynamic) scheme. */

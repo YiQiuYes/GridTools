@@ -14,8 +14,14 @@ data class Tool(
 )
 
 enum class ToolCategory(val label: String) {
+    RECORD("记录"),
     PRODUCTIVITY("效率"),
     CALCULATOR("计算"),
     CONVERTER("转换"),
     UTILITY("实用工具"),
+}
+
+/** Stable tool ids, shared by the catalogue and the runtime dispatcher. */
+object ToolIds {
+    const val SwitchRecord = "switch_record"
 }

@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
@@ -218,6 +219,7 @@ fun HomeScreen(
             if (uiState.tools.isEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     EmptyState(
+                        catalogueEmpty = uiState.totalCount == 0,
                         onReset = {
                             viewModel.onEvent(HomeUiEvent.QueryChanged(""))
                             viewModel.onEvent(HomeUiEvent.CategorySelected(null))
@@ -357,7 +359,7 @@ private fun HeroBanner(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Button(onClick = onRandomTool) {
+                Button(onClick = onRandomTool, enabled = toolCount > 0) {
                     Icon(Icons.Filled.Bolt, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.home_random))
@@ -428,7 +430,7 @@ private fun FeaturedCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = iconFor(tool.id),
+                        imageVector = iconFor(tool.category),
                         contentDescription = null,
                         modifier = Modifier.size(28.dp),
                         tint = tone.onContainer,
@@ -553,6 +555,7 @@ private fun CategoryFilterRow(
 }
 
 private fun categoryIcon(category: ToolCategory): ImageVector = when (category) {
+    ToolCategory.RECORD -> Icons.AutoMirrored.Filled.Assignment
     ToolCategory.PRODUCTIVITY -> Icons.Filled.Bolt
     ToolCategory.CALCULATOR -> Icons.Filled.Calculate
     ToolCategory.CONVERTER -> Icons.Filled.SwapHoriz
@@ -667,7 +670,7 @@ private fun ToolCard(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = iconFor(tool.id),
+                            imageVector = iconFor(tool.category),
                             contentDescription = null,
                             modifier = Modifier.size(28.dp),
                             tint = tone.onContainer,
@@ -761,7 +764,7 @@ private fun ToolCard(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun EmptyState(onReset: () -> Unit) {
+private fun EmptyState(catalogueEmpty: Boolean, onReset: () -> Unit) {
     val shape = heroAccentShape()
     Column(
         modifier = Modifier
@@ -785,25 +788,31 @@ private fun EmptyState(onReset: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.Search,
+                imageVector = if (catalogueEmpty) Icons.Filled.Widgets else Icons.Filled.Search,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
         Text(
-            text = stringResource(R.string.home_empty_title),
+            text = stringResource(
+                if (catalogueEmpty) R.string.home_empty_catalogue_title else R.string.home_empty_title,
+            ),
             style = MaterialTheme.typography.titleLarge,
         )
         Text(
-            text = stringResource(R.string.home_empty_desc),
+            text = stringResource(
+                if (catalogueEmpty) R.string.home_empty_catalogue_desc else R.string.home_empty_desc,
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        FilledTonalButton(onClick = onReset) {
-            Icon(Icons.Filled.Star, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.home_empty_reset))
+        if (!catalogueEmpty) {
+            FilledTonalButton(onClick = onReset) {
+                Icon(Icons.Filled.Star, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.home_empty_reset))
+            }
         }
     }
 }
