@@ -64,31 +64,11 @@ sealed interface SwitchRecordUiEvent {
 }
 
 /**
- * Phrase palette for the task composer.
- *
- * The groups follow the grammar of a switching order — an action, where it
- * happens, on which device, in which state — so tapping a few chips already
- * produces a sentence like "断开 1 号主变 101 开关".
- */
-data class TaskPhraseGroup(
-    val title: String,
-    val phrases: List<String>,
-)
+ * The phrase library itself (groups + persistence) lives in
+ * `data/repository/PhraseLibraryRepository.kt`; the composer receives its
+ * groups as state and merges in the page-scoped temporary group.
 
-val TaskPhraseGroups: List<TaskPhraseGroup> = listOf(
-    TaskPhraseGroup(
-        title = "操作动作",
-        phrases = listOf("断开", "合上", "拉开", "检查", "悬挂", "取下"),
-    ),
-    TaskPhraseGroup(
-        title = "其他",
-        phrases = listOf("在", "\"禁止合闸，线路有人工作\"标志牌"),
-    ),
-    TaskPhraseGroup(
-        title = "设备",
-        phrases = listOf("开关", "刀闸", "接地刀闸", "开关屏面上"),
-    ),
-)
+ */
 
 /** 操作事由编号的可选值。 */
 val ReasonNoOptions: List<String> = listOf(

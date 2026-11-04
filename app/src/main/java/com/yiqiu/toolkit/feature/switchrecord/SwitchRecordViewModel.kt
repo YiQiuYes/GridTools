@@ -4,6 +4,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.yiqiu.toolkit.core.di.AppContainer
+import com.yiqiu.toolkit.data.model.PhraseGroup
+import com.yiqiu.toolkit.data.repository.PhraseLibraryRepository
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * State holder for the switching-operation record.
@@ -12,12 +17,18 @@ import androidx.lifecycle.ViewModel
  * on purpose: every keystroke round-trips through [SwitchRecordUiEvent.FieldChanged]
  * and must land synchronously, otherwise the text field cursor jumps while typing.
  *
- * The record lives in memory for now, exactly like the tool catalogue itself.
+ * The record itself lives in memory for now; the phrase library is persisted
+ * through [PhraseLibraryRepository] and exposed to the composer as [phraseGroups].
  */
-class SwitchRecordViewModel : ViewModel() {
+class SwitchRecordViewModel(
+    phraseLibrary: PhraseLibraryRepository,
+) : ViewModel() {
 
     var uiState by mutableStateOf(SwitchRecordUiState(recordTime = currentDate()))
         private set
+
+    /** Persisted phrase groups shown by the task composer. */
+    val phraseGroups: StateFlow<List<PhraseGroup>> = phraseLibrary.groups
 
     private var nextEntryId = 1L
     private var nextTokenId = 1L
@@ -86,6 +97,12 @@ class SwitchRecordViewModel : ViewModel() {
         uiState = uiState.copy(
             entries = uiState.entries.map { if (it.id == entryId) transform(it) else it },
         )
+    }
+
+    class Factory(private val container: AppContainer) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            SwitchRecordViewModel(container.phraseLibraryRepository) as T
     }
 }
 

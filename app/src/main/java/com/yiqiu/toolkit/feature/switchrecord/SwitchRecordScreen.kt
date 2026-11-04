@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -66,6 +67,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -73,9 +75,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yiqiu.toolkit.R
+import com.yiqiu.toolkit.core.di.LocalAppContainer
 import com.yiqiu.toolkit.ui.theme.toolBadgeShape
 import com.yiqiu.toolkit.ui.theme.toolTone
 import com.yiqiu.toolkit.ui.theme.visualIndexOf
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * 现场倒闸操作记录.
@@ -89,9 +93,12 @@ import com.yiqiu.toolkit.ui.theme.visualIndexOf
 fun SwitchRecordScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SwitchRecordViewModel = viewModel(),
+    viewModel: SwitchRecordViewModel = viewModel(
+        factory = SwitchRecordViewModel.Factory(LocalAppContainer.current),
+    ),
 ) {
     val state = viewModel.uiState
+    val phraseGroups by viewModel.phraseGroups.collectAsStateWithLifecycle()
     var composingEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
@@ -103,7 +110,14 @@ fun SwitchRecordScreen(
     BackHandler(enabled = imeVisible) { focusManager.clearFocus() }
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = modifier
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            // Tapping anywhere outside a text field drops focus (and closes
+            // the keyboard); taps on clickable children are consumed there
+            // first and do not reach this handler.
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { focusManager.clearFocus() })
+            },
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
@@ -224,6 +238,7 @@ fun SwitchRecordScreen(
         TaskComposerSheet(
             tokens = composingEntry.task,
             customPhrases = state.customPhrases,
+            groups = phraseGroups,
             onAddPhrase = { phrase ->
                 viewModel.onEvent(SwitchRecordUiEvent.TaskPhraseAdded(composingEntry.id, phrase))
             },

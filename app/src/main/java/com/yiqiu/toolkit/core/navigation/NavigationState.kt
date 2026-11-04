@@ -92,6 +92,11 @@ class Navigator(private val state: NavigationState) {
         pushInTools(ToolRuntimeRoute(toolId))
     }
 
+    /** Open the switching-operation phrase maintenance screen (Tools stack). */
+    fun openPhraseMaintenance() {
+        pushInTools(PhraseMaintenanceRoute)
+    }
+
     /**
      * Push onto the Tools stack without resetting it: [switchTo] would pop the
      * stack back to its root when the tab is already selected, which would

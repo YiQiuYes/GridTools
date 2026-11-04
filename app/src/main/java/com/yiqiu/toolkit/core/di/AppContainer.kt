@@ -2,8 +2,11 @@ package com.yiqiu.toolkit.core.di
 
 import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.yiqiu.toolkit.core.storage.KeyValueStore
 import com.yiqiu.toolkit.data.repository.InMemoryToolRepository
+import com.yiqiu.toolkit.data.repository.PhraseLibraryRepository
 import com.yiqiu.toolkit.data.repository.ToolRepository
+import com.yiqiu.toolkit.data.storage.SharedPreferencesStore
 import com.yiqiu.toolkit.domain.usecase.GetToolUseCase
 import com.yiqiu.toolkit.domain.usecase.GetToolsUseCase
 import com.yiqiu.toolkit.domain.usecase.ToggleFavoriteUseCase
@@ -20,11 +23,13 @@ import com.yiqiu.toolkit.domain.usecase.ToolUseCases
 interface AppContainer {
     val toolRepository: ToolRepository
     val toolUseCases: ToolUseCases
+    val phraseLibraryRepository: PhraseLibraryRepository
 }
 
-class DefaultAppContainer(
-    @Suppress("UNUSED_PARAMETER") context: Context,
-) : AppContainer {
+class DefaultAppContainer(context: Context) : AppContainer {
+
+    /** Single persistence backend shared by every repository. */
+    private val keyValueStore: KeyValueStore by lazy { SharedPreferencesStore(context) }
 
     override val toolRepository: ToolRepository by lazy { InMemoryToolRepository() }
 
@@ -34,6 +39,10 @@ class DefaultAppContainer(
             getTool = GetToolUseCase(toolRepository),
             toggleFavorite = ToggleFavoriteUseCase(toolRepository),
         )
+    }
+
+    override val phraseLibraryRepository: PhraseLibraryRepository by lazy {
+        PhraseLibraryRepository(keyValueStore)
     }
 }
 

@@ -80,6 +80,16 @@
     <string name="action_confirm">确定</string>
     <string name="action_cancel">取消</string>
 
+    <!-- Phrase library maintenance -->
+    <string name="phrase_lib_title">操作任务维护</string>
+    <string name="phrase_lib_desc">增删拼接词组，改动自动保存，记录页拼接时即时生效</string>
+    <string name="phrase_lib_add_group">新建分组</string>
+    <string name="phrase_lib_add_phrase">添加词组</string>
+    <string name="phrase_lib_group_name">分组名称</string>
+    <string name="phrase_lib_phrase_text">词组内容</string>
+    <string name="phrase_lib_empty_group">暂无词组，点「添加词组」开始</string>
+    <string name="tools_detail_maintain">操作任务维护</string>
+
     <!-- Settings -->
     <string name="settings_title">设置</string>
     <string name="settings_appearance">外观</string>

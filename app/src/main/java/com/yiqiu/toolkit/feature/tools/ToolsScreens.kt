@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -373,6 +374,7 @@ fun ToolDetailScreen(
     onBack: () -> Unit,
     onRelatedTool: (String) -> Unit,
     onLaunch: () -> Unit,
+    onMaintain: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: ToolDetailViewModel = viewModel(
         factory = ToolDetailViewModel.Factory(LocalAppContainer.current, toolId),
@@ -428,6 +430,7 @@ fun ToolDetailScreen(
                 onToggleFavorite = viewModel::toggleFavorite,
                 onRelatedTool = onRelatedTool,
                 onLaunch = onLaunch,
+                onMaintain = onMaintain,
                 contentPadding = innerPadding,
             )
         }
@@ -442,6 +445,7 @@ private fun ToolDetailContent(
     onToggleFavorite: () -> Unit,
     onRelatedTool: (String) -> Unit,
     onLaunch: () -> Unit,
+    onMaintain: (() -> Unit)?,
     contentPadding: PaddingValues,
 ) {
     Column(
@@ -466,6 +470,17 @@ private fun ToolDetailContent(
                 Icon(Icons.Filled.Bolt, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.tools_detail_open))
+            }
+            // Maintenance entry (e.g. the phrase library), rendered between
+            // the launch button and the favorite toggle when the tool
+            // advertises one.
+            if (onMaintain != null) {
+                FilledTonalIconButton(onClick = onMaintain) {
+                    Icon(
+                        imageVector = Icons.Filled.Tune,
+                        contentDescription = stringResource(R.string.tools_detail_maintain),
+                    )
+                }
             }
             FilledTonalIconButton(onClick = onToggleFavorite) {
                 Icon(

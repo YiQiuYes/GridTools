@@ -38,6 +38,10 @@ data class ToolDetailRoute(val toolId: String) : Route
 @Serializable
 data class ToolRuntimeRoute(val toolId: String) : Route
 
+/** Maintenance screen for the switching-operation phrase library. */
+@Serializable
+data object PhraseMaintenanceRoute : Route
+
 @Serializable
 data object SettingsRoute : Route
 

@@ -2,6 +2,7 @@ package com.yiqiu.toolkit.feature.switchrecord
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -45,10 +46,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.yiqiu.toolkit.R
+import com.yiqiu.toolkit.data.model.PhraseGroup
 
 /**
  * Bottom-sheet task composer.
@@ -62,6 +65,7 @@ import com.yiqiu.toolkit.R
 fun TaskComposerSheet(
     tokens: List<TaskToken>,
     customPhrases: List<String>,
+    groups: List<PhraseGroup>,
     onAddPhrase: (String) -> Unit,
     onStoreCustomPhrase: (String) -> Unit,
     onRemoveToken: (Long) -> Unit,
@@ -96,6 +100,11 @@ fun TaskComposerSheet(
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
+                    // Tap empty space to drop the keyboard, matching the
+                    // record screen behaviour.
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { focusManager.clearFocus() })
+                    }
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
@@ -152,7 +161,8 @@ fun TaskComposerSheet(
 
                 if (customPhrases.isNotEmpty()) {
                     PhraseGroupBlock(
-                        group = TaskPhraseGroup(
+                        group = PhraseGroup(
+                            id = TEMP_GROUP_ID,
                             title = stringResource(R.string.switch_record_composer_temp_group),
                             phrases = customPhrases,
                         ),
@@ -160,7 +170,7 @@ fun TaskComposerSheet(
                     )
                 }
 
-                TaskPhraseGroups.forEach { group ->
+                groups.forEach { group ->
                     PhraseGroupBlock(group = group, onAddPhrase = onAddPhrase)
                 }
                 Spacer(Modifier.height(4.dp))
@@ -245,7 +255,7 @@ private fun TaskPreview(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhraseGroupBlock(
-    group: TaskPhraseGroup,
+    group: PhraseGroup,
     onAddPhrase: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -267,3 +277,6 @@ private fun PhraseGroupBlock(
         }
     }
 }
+
+/** Synthetic id of the page-scoped temporary group in the composer. */
+private const val TEMP_GROUP_ID = "temp"

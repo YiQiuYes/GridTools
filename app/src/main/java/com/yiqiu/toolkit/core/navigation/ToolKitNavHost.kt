@@ -14,7 +14,9 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.yiqiu.toolkit.data.model.ToolIds
 import com.yiqiu.toolkit.feature.home.HomeScreen
+import com.yiqiu.toolkit.feature.phraselibrary.PhraseLibraryScreen
 import com.yiqiu.toolkit.feature.settings.SettingsScreen
 import com.yiqiu.toolkit.feature.tools.ToolDetailPlaceholder
 import com.yiqiu.toolkit.feature.tools.ToolDetailScreen
@@ -71,6 +73,13 @@ fun ToolKitNavHost(
                 onBack = { navigator.goBack() },
                 onRelatedTool = navigator::openTool,
                 onLaunch = { navigator.openToolRuntime(key.toolId) },
+                // Only tools with a maintenance surface expose the entry;
+                // today that is the switching-operation phrase library.
+                onMaintain = if (key.toolId == ToolIds.SwitchRecord) {
+                    { navigator.openPhraseMaintenance() }
+                } else {
+                    null
+                },
             )
         }
 
@@ -79,6 +88,12 @@ fun ToolKitNavHost(
                 toolId = key.toolId,
                 onBack = { navigator.goBack() },
             )
+        }
+
+        entry<PhraseMaintenanceRoute>(
+            metadata = ListDetailSceneStrategy.detailPane(),
+        ) {
+            PhraseLibraryScreen(onBack = { navigator.goBack() })
         }
 
         entry<SettingsRoute> {
