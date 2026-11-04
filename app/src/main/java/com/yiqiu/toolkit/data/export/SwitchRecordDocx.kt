@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
 import org.apache.poi.xwpf.usermodel.XWPFDocument
+import org.apache.poi.xwpf.usermodel.XWPFParagraph
+import org.apache.poi.xwpf.usermodel.XWPFRun
 import org.apache.poi.xwpf.usermodel.XWPFTableCell
 import org.apache.poi.xwpf.usermodel.XWPFTable
 import java.io.File
@@ -45,6 +47,9 @@ object SwitchRecordDocx {
     private const val TEMPLATE = "switch_record_template.docx"
     private const val AUTHORITY_SUFFIX = ".fileprovider"
     private const val EXPORT_DIR = "exports"
+
+    /** The 事由 label as it appears in the template run (half-width `)`, full-width `：`). */
+    private const val REASON_LABEL = "操作事由（填写编号)："
 
     init {
         // Android ships no javax.xml.stream implementation, so point POI at Aalto.
@@ -91,27 +96,69 @@ object SwitchRecordDocx {
     }
 
     // -----------------------------------------------------------------------
-    // Header: 操作事由编号 + 操作日期 live in the same paragraph. We rewrite the
-    // single run that carries each label and then *remove* the trailing runs that
-    // originally held the 年/月/日 + spacing. The big gap between the two labels
-    // (runs that sit before 操作日期) is left untouched, so its layout survives.
+    // Header: 操作事由编号 + 操作日期 live in the same paragraph. 操作事由 is an
+    // *equal-length replacement*: the value is written right after its label
+    // and exactly that many padding characters are removed from the blanks
+    // following it, so the line width — and therefore the position of 操作日期
+    // — never changes. The 年/月/日 placeholder runs after the date label are
+    // replaced by the formatted date (line-end, nothing after it shifts).
     // -----------------------------------------------------------------------
     private fun fillHeader(doc: XWPFDocument, data: SwitchRecordExportData) {
         val dateText = formatDate(data.recordTime)
+        val reasonNo = data.reasonNo.trim().split(" ").firstOrNull().orEmpty()
         for (para in doc.paragraphs) {
             val runs = para.runs
             if (runs.isEmpty()) continue
-            val reasonIdx = runs.indexOfFirst { (it.getText(0) ?: "").contains("操作事由（填写编号") }
-            if (reasonIdx >= 0) {
-                runs[reasonIdx].setText("操作事由（填写编号)：${data.reasonNo}")
-            }
-            val dateIdx = runs.indexOfFirst { (it.getText(0) ?: "").contains("操作日期") }
+            val reasonIdx = runs.indexOfFirst { (it.getText(0) ?: "").contains(REASON_LABEL) }
+            if (reasonIdx >= 0) fillReasonNo(para, reasonIdx, reasonNo)
+            // Re-read the runs: fillReasonNo may have removed trailing runs.
+            val dateIdx = para.runs.indexOfFirst { (it.getText(0) ?: "").contains("操作日期") }
             if (dateIdx >= 0) {
-                runs[dateIdx].setText("操作日期：$dateText")
+                para.runs[dateIdx].replaceText("操作日期：$dateText")
                 // Drop every run after the date run (the old 年/月/日 + spacing).
-                for (i in runs.size - 1 downTo dateIdx + 1) para.removeRun(i)
+                for (i in para.runs.size - 1 downTo dateIdx + 1) para.removeRun(i)
             }
         }
+    }
+
+    /**
+     * Equal-length replacement: writes [value] right after [REASON_LABEL] and
+     * removes exactly `value.length` characters from the padding that follows
+     * it — first the spaces trailing the label inside this run, then whole
+     * following space-only runs — so the rest of the line does not shift.
+     */
+    private fun fillReasonNo(para: XWPFParagraph, reasonIdx: Int, value: String) {
+        val run = para.runs[reasonIdx]
+        val original = run.getText(0) ?: ""
+        val trailing = original.length - original.trimEnd(' ').length
+        if (original.length <= trailing) return  // no label in this run — bail out
+        val keep = (trailing - value.length).coerceAtLeast(0)
+        run.replaceText(original.dropLast(trailing) + value + " ".repeat(keep))
+        var overflow = (value.length - trailing).coerceAtLeast(0)
+        var i = reasonIdx + 1
+        while (overflow > 0 && i < para.runs.size) {
+            val text = para.runs[i].getText(0) ?: ""
+            if (text.any { it != ' ' }) break  // reached real content (操作日期…)
+            if (text.length <= overflow) {
+                overflow -= text.length
+                para.removeRun(i)  // the next run shifts into index i
+            } else {
+                para.runs[i].replaceText(text.substring(overflow))
+                overflow = 0
+            }
+        }
+    }
+
+    /**
+     * POI's [XWPFRun.setText] *appends* a new w:t node instead of replacing the
+     * run's text, which silently duplicates content and widens the line. Drop
+     * every w:t beyond the first, then write through position 0 (which also
+     * keeps POI's xml:space="preserve" handling for trailing spaces intact).
+     */
+    private fun XWPFRun.replaceText(text: String) {
+        val ctr = ctr
+        while (ctr.sizeOfTArray() > 1) ctr.removeT(ctr.sizeOfTArray() - 1)
+        setText(text, 0)
     }
 
     // -----------------------------------------------------------------------

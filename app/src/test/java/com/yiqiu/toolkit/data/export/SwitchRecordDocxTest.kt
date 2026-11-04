@@ -23,11 +23,12 @@ class SwitchRecordDocxTest {
 
     private val template = File("src/main/assets/switch_record_template.docx")
 
-    private fun sample(entries: List<ExportEntry>) = SwitchRecordExportData(
-        recordTime = "2026-11-05",
-        reasonNo = "a 配网事故紧急处理",
-        entries = entries,
-    )
+    private fun sample(entries: List<ExportEntry>, reasonNo: String = "a 配网事故紧急处理") =
+        SwitchRecordExportData(
+            recordTime = "2026-11-05",
+            reasonNo = reasonNo,
+            entries = entries,
+        )
 
     private fun writeFilled(data: SwitchRecordExportData): File {
         assertTrue("template asset must exist", template.exists())
@@ -61,8 +62,8 @@ class SwitchRecordDocxTest {
                 assertTrue("note 2 kept", body.contains("操作事由栏填写"))
                 assertTrue("note 3 kept", body.contains("3、本表由操作人员在现场操作时及时记录。"))
 
-                // Injected header content.
-                assertTrue("reason filled", body.contains("操作事由（填写编号)：a 配网事故紧急处理"))
+                // Injected header content: only the code letter goes after the label.
+                assertTrue("reason filled", body.contains("操作事由（填写编号)：a"))
                 assertTrue("date filled", body.contains("操作日期：2026 年 11 月 05 日"))
                 assertFalse("old year/month/day blanks gone", body.contains("年   月   日"))
 
@@ -103,5 +104,30 @@ class SwitchRecordDocxTest {
                 assertEquals("任务9", cellText(last.getCell(3)))
             }
         }
+    }
+
+    @Test
+    fun reasonNoReplacementKeepsHeaderLineLength() {
+        fun headerText(f: File): String = FileInputStream(f).use { input ->
+            XWPFDocument(input).use { doc ->
+                doc.paragraphs.map { it.text ?: "" }
+                    .first { it.contains("操作事由（填写编号") }
+            }
+        }
+        val before = headerText(template)
+
+        // Short value ("a"): the trailing padding shrinks by exactly 1 char.
+        val short = headerText(writeFilled(sample(emptyList())))
+        assertEquals("line length kept for short value", before.length, short.length)
+        assertTrue(short.startsWith("操作事由（填写编号)：a "))
+
+        // Long value: eats into the following space runs; the total line length
+        // is still unchanged and 操作日期 keeps its position at the same offset.
+        val longReason = "b".repeat(30)
+        val long = headerText(writeFilled(sample(emptyList(), longReason)))
+        assertEquals("line length kept for long value", before.length, long.length)
+        assertTrue(long.contains("操作事由（填写编号)：$longReason"))
+        val dateAt = long.indexOf("操作日期：")
+        assertEquals("操作日期 unmoved", before.indexOf("操作日期："), dateAt)
     }
 }

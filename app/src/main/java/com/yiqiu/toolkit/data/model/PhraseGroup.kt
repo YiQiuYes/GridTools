@@ -22,7 +22,7 @@ val DefaultPhraseGroups: List<PhraseGroup> = listOf(
     PhraseGroup(
         id = "misc",
         title = "其他",
-        phrases = listOf("在", "\"禁止合闸，线路有人工作\"标志牌"),
+        phrases = listOf("在", "\"禁止合闸，线路有人工作\"标志牌", "分闸", "位置"),
     ),
     PhraseGroup(
         id = "device",
