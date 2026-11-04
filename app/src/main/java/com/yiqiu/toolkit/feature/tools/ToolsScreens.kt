@@ -374,8 +374,8 @@ fun ToolDetailScreen(
     onBack: () -> Unit,
     onRelatedTool: (String) -> Unit,
     onLaunch: () -> Unit,
-    onMaintain: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onMaintain: (() -> Unit)? = null,
     viewModel: ToolDetailViewModel = viewModel(
         factory = ToolDetailViewModel.Factory(LocalAppContainer.current, toolId),
     ),

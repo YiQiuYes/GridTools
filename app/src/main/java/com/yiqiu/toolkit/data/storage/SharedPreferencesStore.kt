@@ -1,6 +1,7 @@
 package com.yiqiu.toolkit.data.storage
 
 import android.content.Context
+import androidx.core.content.edit
 import com.yiqiu.toolkit.core.storage.KeyValueStore
 
 /**
@@ -16,11 +17,11 @@ class SharedPreferencesStore(context: Context) : KeyValueStore {
     override fun getString(key: String): String? = prefs.getString(key, null)
 
     override fun putString(key: String, value: String) {
-        prefs.edit().putString(key, value).apply()
+        prefs.edit { putString(key, value) }
     }
 
     override fun remove(key: String) {
-        prefs.edit().remove(key).apply()
+        prefs.edit { remove(key) }
     }
 
     private companion object {

@@ -1,0 +1,37 @@
+#!/bin/sh
+# commit-msg: 校验提交信息符合 Conventional Commits 规范
+#
+# 合法格式：
+#   <type>: <subject>
+#   <type>(<scope>): <subject>
+# type 取值：feat fix docs style refactor perf test build ci chore revert
+# 合并/回滚提交（Merge ...、Revert ...）自动放行。
+
+MSG_FILE="$1"
+MSG_HEAD=$(head -n 1 "$MSG_FILE")
+
+# 允许 Merge / Revert 开头的自动生成提交
+case "$MSG_HEAD" in
+    Merge* | Revert* | "fixup!"* | "squash!"*)
+        exit 0
+        ;;
+esac
+
+PATTERN='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_/-]+\))?!?: .{1,100}$'
+
+if ! echo "$MSG_HEAD" | grep -qE "$PATTERN"; then
+    echo ""
+    echo "commit-msg: 提交信息不符合 Conventional Commits 规范："
+    echo "  \"$MSG_HEAD\""
+    echo ""
+    echo "  正确示例："
+    echo "    feat: 新增现场倒闸操作记录工具"
+    echo "    fix(switchrecord): 修复键盘收起后退出页面的问题"
+    echo ""
+    echo "  可用 type: feat fix docs style refactor perf test build ci chore revert"
+    echo ""
+    echo "提交已取消。可使用 git commit --no-verify 跳过校验（不建议）。"
+    exit 1
+fi
+
+exit 0

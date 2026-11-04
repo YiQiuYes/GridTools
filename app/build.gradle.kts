@@ -35,6 +35,12 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests {
+            // Compose Preview runfiles 需要编译后的 Android 资源
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {

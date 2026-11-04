@@ -14,7 +14,6 @@
     <string name="home_subtitle">随手可用的小工具集合</string>
     <string name="home_search">搜索工具…</string>
     <string name="home_all">全部</string>
-    <string name="home_favorite_count">已收藏 %1$d 项</string>
     <string name="home_tools_count">%1$d 个工具</string>
     <string name="home_favorites_count">%1$d 已收藏</string>
     <string name="home_section_all">全部工具</string>
@@ -107,7 +106,4 @@
     <string name="action_back">返回</string>
     <string name="action_favorite">收藏</string>
     <string name="action_unfavorite">取消收藏</string>
-    <string name="action_search">搜索</string>
-    <string name="action_open">打开</string>
-    <string name="action_refresh">换一批</string>
 </resources>

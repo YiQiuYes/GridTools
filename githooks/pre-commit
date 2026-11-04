@@ -1,0 +1,42 @@
+#!/bin/sh
+# pre-commit: 提交前自动执行 Android Lint 与单元测试
+#
+# - 仅当暂存区包含代码/资源/构建脚本变更时才运行，纯文档提交直接放行
+# - 紧急跳过方式：git commit --no-verify
+
+# JAVA_HOME 未设置时，尝试常见的 Android Studio JBR 位置（Windows）
+if [ -z "$JAVA_HOME" ]; then
+    for candidate in \
+        "/c/Program Files/Android/Android Studio/jbr" \
+        "/c/Program Files/Android/Android Studio Preview/jbr" \
+        "$LOCALAPPDATA/Programs/Android Studio/jbr" \
+        "$HOME/AppData/Local/Programs/Android Studio/jbr"; do
+        if [ -d "$candidate" ]; then
+            export JAVA_HOME="$candidate"
+            break
+        fi
+    done
+fi
+
+if [ -z "$JAVA_HOME" ]; then
+    echo "pre-commit: 未找到 JAVA_HOME，跳过 Gradle 检查（请设置 JAVA_HOME 或手动运行 ./gradlew :app:lintDebug）"
+    exit 0
+fi
+
+# 判断暂存区是否有代码相关变更
+if git diff --cached --quiet -- '*.kt' '*.kts' '*.java' '*.xml' '*.toml' 'gradlew' 'gradle/wrapper/*'; then
+    # --quiet 时无差异返回 0，说明没有相关变更
+    exit 0
+fi
+
+echo "==> [pre-commit] 运行 Android Lint 与单元测试..."
+
+if ! ./gradlew :app:lintDebug :app:testDebugUnitTest --console=plain -q; then
+    echo ""
+    echo "pre-commit: 检查未通过，提交已取消。"
+    echo "  - 修复问题后重试，或使用 git commit --no-verify 跳过（不建议）"
+    exit 1
+fi
+
+echo "==> [pre-commit] 检查通过。"
+exit 0
