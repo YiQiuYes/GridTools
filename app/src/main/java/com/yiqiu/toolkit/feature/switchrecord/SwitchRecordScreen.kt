@@ -31,6 +31,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -63,6 +64,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +75,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -88,6 +91,14 @@ import com.yiqiu.toolkit.ui.theme.toolBadgeShape
 import com.yiqiu.toolkit.ui.theme.toolTone
 import com.yiqiu.toolkit.ui.theme.visualIndexOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.content.Intent
+import android.net.Uri
+import com.yiqiu.toolkit.data.export.ExportEntry
+import com.yiqiu.toolkit.data.export.SwitchRecordDocx
+import com.yiqiu.toolkit.data.export.SwitchRecordExportData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 现场倒闸操作记录.
@@ -112,6 +123,50 @@ fun SwitchRecordScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val snackbarHostState = remember { SnackbarHostState() }
     val savedMessage = stringResource(R.string.switch_record_saved)
+    val exportShareTitle = stringResource(R.string.switch_record_export_share_title)
+    val exportFailedMessage = stringResource(R.string.switch_record_export_failed)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    /** Fill the bundled Word template with the current page content and share it. */
+    fun exportDocx() {
+        scope.launch {
+            val data = SwitchRecordExportData(
+                recordTime = state.recordTime,
+                reasonNo = state.reasonNo,
+                entries = state.entries.map { e ->
+                    ExportEntry(
+                        issuer = e.issuer,
+                        receiver = e.receiver,
+                        task = e.task.joinToString("") { it.text },
+                        completedAt = e.completedAt,
+                        operator = e.operator,
+                        supervisor = e.supervisor,
+                        note = e.note,
+                    )
+                },
+            )
+            val uri = withContext(Dispatchers.IO) {
+                SwitchRecordDocx.exportToCache(context, data)
+            }
+            if (uri != null) {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(
+                    Intent.createChooser(
+                        intent,
+                        exportShareTitle,
+                    ),
+                )
+            } else {
+                snackbarHostState.showSnackbar(exportFailedMessage)
+            }
+        }
+    }
 
     // Confirm each successful save with a transient snackbar; keyed on the
     // save timestamp so repeated saves re-trigger it.
@@ -162,6 +217,24 @@ fun SwitchRecordScreen(
                         Icon(
                             imageVector = Icons.Filled.Save,
                             contentDescription = stringResource(R.string.action_save),
+                        )
+                    }
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.action_more),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.switch_record_export)) },
+                            onClick = {
+                                menuExpanded = false
+                                exportDocx()
+                            },
                         )
                     }
                 },

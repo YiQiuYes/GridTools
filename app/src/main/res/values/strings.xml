@@ -87,6 +87,10 @@
     <string name="switch_record_history_empty_desc">在记录页点右上角「保存」后，可在这里查看和修改</string>
     <string name="switch_record_delete_record">删除该记录</string>
     <string name="switch_record_delete_record_confirm">删除后无法恢复，确定删除这条历史记录吗？</string>
+    <string name="action_more">更多</string>
+    <string name="switch_record_export">另存为 Word 文档</string>
+    <string name="switch_record_export_share_title">导出现场电气操作记录票</string>
+    <string name="switch_record_export_failed">导出失败，请重试</string>
 
     <!-- Phrase library maintenance -->
     <string name="phrase_lib_title">操作任务维护</string>
