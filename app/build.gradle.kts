@@ -52,9 +52,11 @@ android {
         release {
             signingConfig = signingConfigs["release"]
 
+            // R8 disabled: keeps POI/XMLBeans untouched, avoids the separate
+            // R8 worker JVM (was OOM-prone, needed a 16G execution profile).
+            // APK grows (~10MB -> ~30MB) but nothing gets stripped or renamed.
             optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+                enable = false
             }
         }
 
