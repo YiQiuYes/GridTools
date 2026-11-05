@@ -1,10 +1,38 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
 
+var keystoreProperties = Properties()
+var keystorePropertiesFile = rootProject.file("app/key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+} else {
+    keystoreProperties.setProperty("storePassword", System.getenv("KEY_STORE_PASSWORD"))
+    keystoreProperties.setProperty("keyPassword", System.getenv("KEY_PASSWORD"))
+    keystoreProperties.setProperty("keyAlias", System.getenv("ALIAS"))
+    keystoreProperties.setProperty("storeFile", "key.jks")
+}
+
 android {
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            keyAlias = keystoreProperties["keyAlias"] as String
+            storePassword = keystoreProperties["storePassword"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+        }
+        create("release") {
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            keyAlias = keystoreProperties["keyAlias"] as String
+            storePassword = keystoreProperties["storePassword"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+        }
+    }
     namespace = "com.yiqiu.toolkit"
     compileSdk {
         version = release(37)
@@ -22,10 +50,16 @@ android {
 
     buildTypes {
         release {
+            signingConfig = signingConfigs["release"]
+
             optimization {
                 enable = true
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
             }
+        }
+
+        debug {
+            signingConfig = signingConfigs["debug"]
         }
     }
     compileOptions {
@@ -48,8 +82,10 @@ android {
 
 dependencies {
     // Compose BOM: single source of versions for every Compose artifact.
-    // It has to be applied to androidTest as well, because test configurations
-    // do not inherit constraints from `implementation`.
+    // MUST be repeated on androidTest: that configuration does NOT inherit
+    // platform constraints from `implementation` (ui-test-junit4 then resolves
+    // with no version). The IDE "declared multiple times" hint is a false
+    // positive for BOMs spread across configurations.
     val composeBom = platform(libs.androidx.compose.bom)
 
     // Core / lifecycle

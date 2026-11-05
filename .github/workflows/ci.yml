@@ -52,6 +52,11 @@ jobs:
   build:
     name: Build & Test
     runs-on: ubuntu-latest
+    env:
+      version: ${{ inputs.version }}
+      ALIAS: ${{ secrets.ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,11 +70,25 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Set up signing environment
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        # The module-level `file("key.jks")` in signingConfigs resolves to app/key.jks.
+        run: |
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "SIGNING_KEY secret is not set; release APK will be unsigned" >&2
+          else
+            echo "$SIGNING_KEY" | base64 -d > app/key.jks
+          fi
+
       - name: Set up Gradle (with cache)
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Build Release APK
+        run: ./gradlew :app:assembleRelease --stacktrace
 
       - name: Run Unit Tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
@@ -88,5 +107,13 @@ jobs:
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: ignore
           retention-days: 14
