@@ -136,6 +136,8 @@ fun SwitchRecordScreen(
     /** Fill the bundled Word template with the current page content and share it. */
     fun exportDocx() {
         scope.launch {
+            // 另存为 Word 的同时也保存为历史记录：已存在的记录直接更新数据。
+            viewModel.save()
             val data = SwitchRecordExportData(
                 recordTime = state.recordTime,
                 reasonNo = state.reasonNo,
@@ -182,10 +184,24 @@ fun SwitchRecordScreen(
 
     // On predictive-back devices the back press that collapses the keyboard
     // can also reach the app's back dispatcher and pop this screen. While the
-    // IME is visible, consume the back press and just drop focus instead.
+    // IME is visible, consume the back press and just drop focus instead; the
+    // next back press (or one on a clean keyboard-less screen) persists any
+    // unsaved edits before leaving, so nothing is lost on the way out.
     val imeVisible = WindowInsets.isImeVisible
     val focusManager = LocalFocusManager.current
-    BackHandler(enabled = imeVisible) { focusManager.clearFocus() }
+    BackHandler(enabled = imeVisible || viewModel.hasUnsavedChanges) {
+        if (imeVisible) {
+            focusManager.clearFocus()
+        } else {
+            viewModel.save()
+            onBack()
+        }
+    }
+    // The app-bar back arrow follows the same rule as the system back press.
+    val exitScreen: () -> Unit = {
+        if (viewModel.hasUnsavedChanges) viewModel.save()
+        onBack()
+    }
 
     Scaffold(
         modifier = modifier
@@ -209,7 +225,7 @@ fun SwitchRecordScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = exitScreen) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.action_back),

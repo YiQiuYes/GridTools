@@ -43,6 +43,10 @@ class SwitchRecordViewModel(
     var lastSavedAt by mutableStateOf<Long?>(null)
         private set
 
+    /** True when the form has edits not yet persisted; drives save-on-exit. */
+    var hasUnsavedChanges by mutableStateOf(false)
+        private set
+
     /** The record being edited; assigned on first save for new records. */
     private var currentRecordId: String? = recordId
 
@@ -61,6 +65,7 @@ class SwitchRecordViewModel(
     }
 
     fun onEvent(event: SwitchRecordUiEvent) {
+        hasUnsavedChanges = true
         when (event) {
             is SwitchRecordUiEvent.RecordTimeChanged ->
                 uiState = uiState.copy(recordTime = event.value)
@@ -127,6 +132,7 @@ class SwitchRecordViewModel(
             ),
         )
         lastSavedAt = savedAt
+        hasUnsavedChanges = false
     }
 
     private fun load(record: SavedSwitchRecord) {

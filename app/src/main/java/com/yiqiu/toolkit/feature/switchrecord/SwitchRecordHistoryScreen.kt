@@ -206,6 +206,21 @@ private fun HistoryRecordCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // 只预览第一项操作的操作任务，便于不点开就能看内容。
+                val taskSummary = record.entries
+                    .firstOrNull { entry -> entry.task.any { it.text.isNotBlank() } }
+                    ?.task
+                    ?.joinToString("") { it.text }
+                    .orEmpty()
+                if (taskSummary.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.switch_record_history_tasks, taskSummary),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Text(
                     text = stringResource(
                         R.string.switch_record_history_meta,
