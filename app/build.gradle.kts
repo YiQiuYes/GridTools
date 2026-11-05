@@ -47,7 +47,10 @@ android {
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
+    // Compose BOM: single source of versions for every Compose artifact.
+    // It has to be applied to androidTest as well, because test configurations
+    // do not inherit constraints from `implementation`.
+    val composeBom = platform(libs.androidx.compose.bom)
 
     // Core / lifecycle
     implementation(libs.androidx.core.ktx)
@@ -59,6 +62,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 
     // Compose + Material 3 Expressive
+    implementation(composeBom)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -85,7 +89,7 @@ dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     testImplementation(libs.junit)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(composeBom)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

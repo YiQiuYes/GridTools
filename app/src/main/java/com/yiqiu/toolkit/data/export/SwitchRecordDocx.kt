@@ -3,17 +3,17 @@ package com.yiqiu.toolkit.data.export
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.yiqiu.toolkit.data.export.SwitchRecordDocx.REASON_LABEL
 import org.apache.poi.xwpf.usermodel.BreakType
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFParagraph
 import org.apache.poi.xwpf.usermodel.XWPFRun
-import org.apache.poi.xwpf.usermodel.XWPFTableCell
 import org.apache.poi.xwpf.usermodel.XWPFTable
+import org.apache.poi.xwpf.usermodel.XWPFTableCell
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -178,7 +178,7 @@ object SwitchRecordDocx {
         val keep = (trailing - value.length).coerceAtLeast(0)
         run.replaceText(original.dropLast(trailing) + value + " ".repeat(keep))
         var overflow = (value.length - trailing).coerceAtLeast(0)
-        var i = reasonIdx + 1
+        val i = reasonIdx + 1
         while (overflow > 0 && i < para.runs.size) {
             val text = para.runs[i].getText(0) ?: ""
             if (text.any { it != ' ' }) break  // reached real content (操作日期…)
@@ -213,7 +213,7 @@ object SwitchRecordDocx {
         val body = doc.document.body
         val dst = body.sectPr?.newCursor()
             ?: body.newCursor().also { cursor -> cursor.toEndToken() }
-        try {
+        dst.use { dst ->
             // Copy the page break, then every template body element except
             // sectPr. The destination cursor stays put, so each copy lands
             // right after the previous one (and before the body's sectPr).
@@ -221,18 +221,14 @@ object SwitchRecordDocx {
                 breakSrc.copyXml(dst)
             }
             val src = pristine.document.body.newCursor()
-            try {
+            src.use { src ->
                 if (src.toFirstChild()) {
                     do {
-                        if (src.getName()?.localPart == "sectPr") continue
+                        if (src.name?.localPart == "sectPr") continue
                         src.copyXml(dst)
                     } while (src.toNextSibling())
                 }
-            } finally {
-                src.dispose()
             }
-        } finally {
-            dst.dispose()
         }
     }
 
@@ -265,7 +261,7 @@ object SwitchRecordDocx {
         // them too so the whole table looks uniform if it is ever edited.
         for (r in 1 until table.numberOfRows) {
             val row = table.getRow(r) ?: continue
-            for (c in 0 until row.getTableCells().size) {
+            for (c in row.getTableCells().indices) {
                 alignCell(
                     row.getCell(c),
                     if (c == TASK_COLUMN) ParagraphAlignment.LEFT else ParagraphAlignment.CENTER,
