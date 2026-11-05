@@ -83,6 +83,7 @@
     <string name="switch_record_history_title">历史记录</string>
     <string name="switch_record_history_count">共 %1$d 条</string>
     <string name="switch_record_history_meta">%1$d 项操作 · 保存于 %2$s</string>
+    <string name="switch_record_history_tasks">操作任务：%1$s</string>
     <string name="switch_record_history_empty_title">还没有历史记录</string>
     <string name="switch_record_history_empty_desc">在记录页点右上角「保存」后，可在这里查看和修改</string>
     <string name="switch_record_delete_record">删除该记录</string>
